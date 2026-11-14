@@ -9,6 +9,51 @@ function aim(from: { x: number; y: number }, arena: Arena): number {
  * Base class for everything the player can shoot or pick up: enemies, the
  * boss and power-ups. kind is the prefab's name and also its texture key.
  */
+
+export interface PrefabConfig {
+  hp: number;
+  score: number;
+  radius: number;
+  dropChance: number;
+  canShoot: boolean;
+  isPickup: boolean;
+}
+
+export const ENEMY_DEFS = {
+  drone: {
+    hp: 2,
+    score: 100,
+    radius: 13,
+    dropChance: 0.015,
+    canShoot: true,
+    isPickup: false,
+  },
+  dart: {
+    hp: 1,
+    score: 150,
+    radius: 12,
+    dropChance: 0.015,
+    canShoot: false,
+    isPickup: false,
+  },
+  turret: {
+    hp: 12,
+    score: 400,
+    radius: 19,
+    dropChance: 0.3,
+    canShoot: true,
+    isPickup: false,
+  },
+  lancer: {
+    hp: 4,
+    score: 250,
+    radius: 15,
+    dropChance: 0.06,
+    canShoot: true,
+    isPickup: false,
+  },
+};
+
 export class ShmupPrefabSprite extends Actor {
   maxHp: number;
   flash = 0;
@@ -16,22 +61,29 @@ export class ShmupPrefabSprite extends Actor {
   // spin: turrets rotate using this
   spin = 0;
 
+  public config: PrefabConfig;
+  public hp: number;
+  public score: number;
+  public dropChance: number;
+  public canShoot: boolean;
+  public isPickup: boolean;
+
   constructor(
     scene: Phaser.Scene,
     x: number,
     y: number,
     public kind: string,
-    public hp: number,
-    public score: number,
-    radius: number,
-    public dropChance: number,
-    public canShoot: boolean,
-    public isPickup: boolean,
     public homeX: number,
     public side: number,
   ) {
-    super(scene, x, y, kind, radius);
-    this.maxHp = hp;
+    const config = ENEMY_DEFS[kind] ?? ENEMY_DEFS["drone"];
+    super(scene, x, y, kind, config.radius);
+    this.hp = config.hp;
+    this.maxHp = config.hp;
+    this.score = config.score;
+    this.dropChance = config.dropChance;
+    this.canShoot = config.canShoot;
+    this.isPickup = config.isPickup;
   }
 
   step(arena: Arena): void {
@@ -54,7 +106,6 @@ export class ShmupPrefabSprite extends Actor {
         this.x = this.homeX + Math.sin(this.age * 0.045) * 46 * this.side;
         break;
       case "dart":
-        // Drift in slowly, then commit to a dive toward where the player was.
         if (this.age < 50) {
           this.y += 1.2;
         } else {
@@ -90,9 +141,6 @@ export class ShmupPrefabSprite extends Actor {
         arena.fire(this.x, this.y, aim(this, arena), 3.4);
         break;
       }
-      // case "dart":
-      //   if (this.age === 50) arena.fire(this.x, this.y, aim(this, arena), 3);
-      //   break;
       case "lancer":
         if (this.age % 40 !== 20 || this.x < 20 || this.x > WIDTH - 20) return;
         for (const spread of [-0.25, 0, 0.25]) {
@@ -110,7 +158,6 @@ export class ShmupPrefabSprite extends Actor {
     return 1;
   }
 
-  /** Returns true when this hit destroys the prefab. */
   takeDamage(amount: number): boolean {
     if (this.isPickup) return false;
     this.hp -= amount;
@@ -124,20 +171,7 @@ export class ShmupBoss extends ShmupPrefabSprite {
   readonly core: Phaser.GameObjects.Image;
 
   constructor(scene: Phaser.Scene) {
-    super(
-      scene,
-      WIDTH / 2,
-      -90,
-      "boss",
-      900,
-      10000,
-      46,
-      0,
-      true,
-      false,
-      WIDTH / 2,
-      1,
-    );
+    super(scene, WIDTH / 2, -90, "boss", WIDTH / 2, 1);
     this.core = scene.add.image(this.x, this.y, "boss-core").setBlendMode(
       Phaser.BlendModes.ADD,
     );
@@ -212,7 +246,7 @@ export class ShmupBoss extends ShmupPrefabSprite {
 
 export class ShmupPowerUp extends ShmupPrefabSprite {
   constructor(scene: Phaser.Scene, x: number, y: number, kind) {
-    super(scene, x, y, kind, 0, 0, 14, 0, false, true, x, 1);
+    super(scene, x, y, kind, x, 1);
   }
 
   override step(): void {

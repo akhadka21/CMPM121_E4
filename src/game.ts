@@ -46,7 +46,7 @@ export class GameScene extends Phaser.Scene implements Arena {
   private run;
   private pilot!: Pilot;
   private backdrop!: Backdrop;
-  private enemies: ShmupPrefabSprite[] = [];
+  enemies: ShmupPrefabSprite[] = [];
   private shots: Bullet[] = [];
   private bullets: Bullet[] = [];
   private pickups: ShmupPowerUp[] = [];
@@ -325,20 +325,7 @@ export class GameScene extends Phaser.Scene implements Arena {
 
   summon(_kind: string, x: number, y: number): void {
     this.enemies.push(
-      new ShmupPrefabSprite(
-        this,
-        x,
-        y,
-        "drone",
-        2,
-        100,
-        13,
-        0.015,
-        true,
-        false,
-        x,
-        x < WIDTH / 2 ? 1 : -1,
-      ),
+      new ShmupPrefabSprite(this, x, y, "drone", x, x < WIDTH / 2 ? 1 : -1),
     );
   }
 
@@ -446,7 +433,7 @@ export class GameScene extends Phaser.Scene implements Arena {
       count: number,
       getPosition: (i: number) => { x: number; y: number },
       getDelay?: (i: number) => number,
-    ) => spawnWave.call(this, t, at, kind, count, getPosition, getDelay);
+    ) => spawnWave.call(this, t - at, kind, count, getPosition, getDelay);
 
     switch (this.sector) {
       case 0:
@@ -608,12 +595,14 @@ export class GameScene extends Phaser.Scene implements Arena {
   }
 
   private destroyEnemy(enemy: ShmupPrefabSprite): void {
+    console.log("kill", enemy.kind, this.run.kills + 1);
     enemy.setActive(false);
     this.run.score += enemy.score;
-    this.run.kills++;
     if (enemy === this.boss) {
       this.defeatBoss(this.boss);
       return;
+    } else {
+      this.run.kills++;
     }
     this.explode(enemy.x, enemy.y, 1);
     if (this.rng.chance(enemy.dropChance)) {
@@ -761,70 +750,29 @@ function sweep<T extends Actor>(
   });
 }
 
-const ENEMY_DEFS = {
-  drone: {
-    hp: 2,
-    score: 100,
-    radius: 13,
-    dropChance: 0.015,
-    canShoot: true,
-    isPickup: false,
-  },
-  dart: {
-    hp: 1,
-    score: 150,
-    radius: 12,
-    dropChance: 0.015,
-    canShoot: false,
-    isPickup: false,
-  },
-  turret: {
-    hp: 12,
-    score: 400,
-    radius: 19,
-    dropChance: 0.3,
-    canShoot: true,
-    isPickup: false,
-  },
-  lancer: {
-    hp: 4,
-    score: 250,
-    radius: 15,
-    dropChance: 0.06,
-    canShoot: true,
-    isPickup: false,
-  },
-};
-
-type EnemyKind = keyof typeof ENEMY_DEFS;
+type EnemyKind = "drone" | "dart" | "turret" | "lancer";
 
 function spawnWave(
+  this: GameScene,
   t: number,
   kind: EnemyKind,
   count: number,
   getPosition: (i: number) => { x: number; y: number },
   getDelay: (i: number) => number = () => 0,
 ): void {
-  const def = ENEMY_DEFS[kind];
-
   for (let i = 0; i < count; i++) {
     if (t === getDelay(i)) {
       const pos = getPosition(i);
-      const enemy = new ShmupPrefabSprite(
-        this,
-        pos.x,
-        pos.y,
-        kind,
-        def.hp,
-        def.score,
-        def.radius,
-        def.dropChance,
-        def.canShoot,
-        def.isPickup,
-        pos.x,
-        i % 2 === 0 ? 1 : -1,
+      this.enemies.push(
+        new ShmupPrefabSprite(
+          this,
+          pos.x,
+          pos.y,
+          kind,
+          pos.x,
+          i % 2 === 0 ? 1 : -1,
+        ),
       );
-      this.enemies.push(enemy);
     }
   }
 }
