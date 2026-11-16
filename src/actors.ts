@@ -10,14 +10,14 @@ export interface Arena {
   readonly player: Player;
   /** Fixed-step ticks since the run began (60 per second). */
   readonly now: number;
-  fire(
+  fire?(
     x: number,
     y: number,
     angle: number,
     speed: number,
     heavy?: boolean,
   ): void;
-  summon(kind: string, x: number, y: number): void;
+  summon?(kind: string, x: number, y: number): void;
 }
 
 /** A circle-collided image advanced once per fixed tick by its scene. */
@@ -151,11 +151,6 @@ export class Player extends Actor {
 function aim(from: { x: number; y: number }, arena: Arena): number {
   return Math.atan2(arena.player.y - from.y, arena.player.x - from.x);
 }
-
-/**
- * Base class for everything the player can shoot or pick up: enemies, the
- * boss and power-ups. kind is the prefab's name and also its texture key.
- */
 
 export interface EnemyConfig {
   hp: number;
