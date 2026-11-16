@@ -10,14 +10,14 @@ export interface Arena {
   readonly player: Player;
   /** Fixed-step ticks since the run began (60 per second). */
   readonly now: number;
-  fire?(
+  fire(
     x: number,
     y: number,
     angle: number,
     speed: number,
     heavy?: boolean,
   ): void;
-  summon?(kind: string, x: number, y: number): void;
+  summon(kind: string, x: number, y: number): void;
 }
 
 /** A circle-collided image advanced once per fixed tick by its scene. */
